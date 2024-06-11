@@ -1,0 +1,114 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+// Definir una estructura para representar una carta
+typedef struct {
+    char color; // Usamos 'R', 'B', 'G' y 'Y' para los colores
+    char symbol; // '0'-'9' para el nombre de las cartas, o 'R', 'S', 'T' o 'W' para cartas especiales
+} Card;
+
+// Definir una estructura para representar el estado del juego
+typedef struct {
+    Card deck[108]; // la baraja de cartas
+    Card hands[10][7]; // manos de los jugadores (10 jugadores, 7 cartas cada uno)
+    Card discardPile[108]; // la pila de descarte
+    int playerCount; // nÃºmero de jugadores
+} GameState;
+
+// FunciÃ³n para inicializar la baraja
+void initDeck(GameState* gameState) {
+    int index = 0;
+    for (char color = 'R'; color <= 'Y'; color++) {
+        for (int i = 0; i < 25; i++) {
+            if (i < 10) {
+                gameState->deck[index].color = color;
+                gameState->deck[index].symbol = '0' + i;
+            } else {
+                switch (i) {
+                    case 10:
+                        gameState->deck[index].color = color;
+                        gameState->deck[index].symbol = 'R'; // Revertir
+                        break;
+                    case 11:
+                        gameState->deck[index].color = color;
+                        gameState->deck[index].symbol = 'S'; // Saltar
+                        break;
+                    case 12:
+                        gameState->deck[index].color = color;
+                        gameState->deck[index].symbol = 'T'; // Tomar Dos
+                        break;
+                    default:
+                        gameState->deck[index].color = 'W'; // Wild
+                        gameState->deck[index].symbol = 'W';
+                        break;
+                }
+            }
+            index++;
+        }
+    }
+    // Barajar la baraja usando el algoritmo de Fisher-Yates
+    for (int i = 107; i > 0; i--) {
+        int j = rand() % (i + 1);
+        Card temp = gameState->deck[i];
+        gameState->deck[i] = gameState->deck[j];
+        gameState->deck[j] = temp;
+    }
+}
+
+// FunciÃ³n para inicializar las manos de los jugadores
+void initHands(GameState* gameState) {
+    for (int i = 0; i < gameState->playerCount; i++) {
+        for (int j = 0; j < 7; j++) {
+            gameState->hands[i][j] = gameState->deck[j];
+            gameState->deck[j].color = '\0'; // quitar la carta de la baraja
+        }
+    }
+}
+
+// FunciÃ³n para jugar el juego
+void playGame(GameState* gameState) {
+    printf("Bienvenido a Uno!\n");
+    while (1) {
+        // Fase de dibujar
+        Card drawnCard = gameState->deck[0];
+        gameState->deck[0].color = '\0'; // quitar la carta de la baraja
+
+        // Fase de jugar
+        printf("Tu turno! Haz dibujado una carta %c %c.\n", drawnCard.color, drawnCard.symbol);
+
+        // Fase de acciÃ³n
+        //...
+
+        // Fase de descartar
+        //...
+
+        // Verificar condiciÃ³n de victoria
+        for (int i = 0; i < gameState->playerCount; i++) {
+            int handEmpty = 1;
+            for (int j = 0; j < 7; j++) {
+                if (gameState->hands[i][j].color!= '\0') {
+                    handEmpty = 0;
+                    break;
+                }
+            }
+            if (handEmpty) {
+                printf("Jugador %d gana!\n", i + 1);
+                return;
+            }
+        }
+    }
+}
+
+int main(){
+    srand(time(0)); // semilla Aleatoria
+
+    GameState gameState;
+    gameState.playerCount = 2; // 2 jugadores por ahora
+
+    initDeck(&gameState);
+    initHands(&gameState);
+    playGame(&gameState);
+    
+    return 0;
+};
