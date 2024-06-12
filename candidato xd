@@ -10,21 +10,26 @@ typedef struct {
 
 // Definir una estructura para representar el estado del juego
 typedef struct {
-    Card deck[108]; // la baraja de cartas
+    Card deck[66]; // la baraja de cartas
     Card hands[10][7]; // manos de los jugadores (10 jugadores, 7 cartas cada uno)
-    Card discardPile[108]; // la pila de descarte
+    Card discardPile[66]; // la pila de descarte
     int playerCount; // número de jugadores
 } GameState;
 
 // Función para inicializar la baraja
+// Función para inicializar la baraja
 void initDeck(GameState* gameState) {
     int index = 0;
-    for (char color = 'B'; color <= 'Y'; color++) {
-        for (int i = 0; i < 25; i++) {
-        if(color=='R'||color=='Y'||color=='G'||color=='B'){
+    const char colors[] = {'B', 'R', 'G', 'Y'}; // Array de colores permitidos
+
+    // Bucle externo solo para los colores permitidos
+    for (int colorIndex = 0; colorIndex < sizeof(colors); colorIndex++) {
+        char color = colors[colorIndex];
+        for (int i = 0; i < 15; i++) {
                 if (i < 10) {
-                 gameState->deck[index].color = color;
+                    gameState->deck[index].color = color;
                     gameState->deck[index].symbol = '0' + i;
+                    if(color=='B'){gameState->deck[index].color = 'R';};
                      } else {
                     switch (i) {
                         case 10:
@@ -51,27 +56,33 @@ void initDeck(GameState* gameState) {
                     }
                 }
                 index++;
-            };
         }
     }
     // Barajar la baraja usando el algoritmo de Fisher-Yates
-    for (int i = 107; i > 0; i--) {
+    /*for (int i = 59; i > 0; i--) {
         int j = rand() % (i + 1);
         Card temp = gameState->deck[i];
         gameState->deck[i] = gameState->deck[j];
         gameState->deck[j] = temp;
-    }
+    }*/
 }
 
+
+// Función para imprimir el maso de cartas
 void printDeck(GameState* gameState) {
     printf("Deck:\n");
-    for (int i = 0; i < 108; i++) {
-        printf("%c%c ", gameState->deck[i].color, gameState->deck[i].symbol);
+    for (int i = 0; i < 60; i++) {
+        if (gameState->deck[i].symbol == 'R' || gameState->deck[i].symbol == 'S' || gameState->deck[i].symbol == 'T' || gameState->deck[i].symbol == 'W') {
+            printf("%c%c ", gameState->deck[i].color, gameState->deck[i].symbol);
+        } else {
+            printf("%c%c ", gameState->deck[i].color, gameState->deck[i].symbol);
+        }
         // Salto de línea después de cada 5 cartas
         if ((i + 1) % 5 == 0) {
             printf("\n");
         }
     }
+    printf("\n");
 }
 
 
@@ -185,10 +196,14 @@ int main(){
 
     initDeck(&gameState);
     initHands(&gameState);
-    playGame(&gameState);
+    //playGame(&gameState);
     printDeck(&gameState);
-    printhand(&gameState);
+    //printhand(&gameState);
     
+    getchar();
+    getchar();
+    return 0;
+};
     getchar();
     return 0;
 };
