@@ -88,6 +88,22 @@ void printDeck(GameState* gameState) {
     printf("\n");
 }
 
+void printDeckDescatadas(GameState* gameState) {
+    printf("Deck:\n");
+    for (int i = 0; i < 60; i++) {
+        if (gameState->discardPile[i].symbol == 'R' || gameState->discardPile[i].symbol == 'S' || gameState->discardPile[i].symbol == 'T' || gameState->discardPile[i].symbol == 'W') {
+            printf("%c%c ", gameState->discardPile[i].color, gameState->discardPile[i].symbol);
+        } else {
+            printf("%c%c ", gameState->discardPile[i].color, gameState->discardPile[i].symbol);
+        }
+        // Salto de línea después de cada 5 cartas
+        if ((i + 1) % 15 == 0) {
+            printf("\n");
+        }
+    }
+    printf("\n");
+}
+
 
 // Función para inicializar las manos de los jugadores
 void initHands(GameState* gameState) {
@@ -122,6 +138,34 @@ int conditionWin(GameState* gameState){
 			};
 		return 0;
 	};
+
+void nextCard(GameState* gameState, Card* drawnCard, int* indexglobal, int* indexdescarte) {
+    *drawnCard = gameState->deck[*indexglobal];
+    gameState->discardPile[*indexdescarte] = gameState->deck[*indexglobal];
+    gameState->deck[*indexglobal].symbol = '\0';
+    gameState->deck[*indexglobal].color = '\0'; // quitar la carta de la baraja
+    (*indexglobal)++;
+    (*indexdescarte)++;
+
+}
+void agregarCard(GameState* gameState, int currentPlayer) {
+    printf("Que carta desea descartar? (0-6): ");
+    int opc;
+    scanf("%d", &opc);
+    if (opc >= 0 && opc < 7) {
+        Card newCard;
+        nextCard(gameState, &newCard, &indexglobal, &indexdescarte);
+        gameState->hands[currentPlayer][opc].color = newCard.color; // add the new card to the player's hand
+        gameState->hands[currentPlayer][opc].symbol = newCard.symbol;
+        printf("Tu mano: ");
+        for (int i = 0; i < 7; i++) {
+            printf("%c%c|", gameState->hands[currentPlayer][i].color, gameState->hands[currentPlayer][i].symbol);
+        }
+        printf("\n");
+    } else {
+        printf("Opcion invalida\n");
+    }
+}
 // Función para jugar el juego
 void playGame(GameState* gameState) {
     printf("Bienvenido a Uno!\n");
@@ -134,17 +178,11 @@ void playGame(GameState* gameState) {
         }
         printf("\n");
         // Fase de dibujar
-		do{
-        Card drawnCard = gameState->deck[indexglobal];
-        gameState->discardPile[indexdescarte]= gameState->deck[indexglobal];
-        gameState->deck[indexglobal].symbol = '\0';
-        gameState->deck[indexglobal].color = '\0'; // quitar la carta de la baraja
-        indexglobal++;
-        indexdescarte++;
+        Card drawnCard;
+        do{
+        nextCard(gameState, &drawnCard, &indexglobal, &indexdescarte);
         //condicion para que sepa que es una carta valida para inicio de juego
-        if()
-    	}while();
-        // Fase de jugar
+        }while(drawnCard.symbol =='R' || drawnCard.symbol =='S' || drawnCard.symbol =='T' || drawnCard.symbol =='W' || drawnCard.color =='W');
         int cartavalida=0;
         do{
         printf("Tu turno! La carta descartada es: %c%c .\n", drawnCard.color, drawnCard.symbol);
@@ -170,7 +208,12 @@ void playGame(GameState* gameState) {
             gameState->hands[currentPlayer][cartaJugada].color = '\0'; // quitar la carta de la mano
             gameState->hands[currentPlayer][cartaJugada].symbol = '\0'; // quitar la carta de la mano
 			cartavalida=1;
-			}else{ printf("opcion invalida\n");}};
+			}else{ printf("opcion invalida\n");}
+            }else if(cartaJugada==7){ 
+                //funcion agregar carta a el maso
+                agregarCard(gameState,0);
+                printDeckDescatadas(gameState);
+            };
         // Fase de descartar
         // Agregar la carta descartada a la pila de descarte
         //gameState->discardPile[0] = drawnCard;
@@ -194,13 +237,9 @@ void playGame(GameState* gameState) {
 };
 
 int CartaValida(GameState* gameState,Card c1,Card c2) {
-
     if(c1.color==c2.color){return 1;};
-
     if(c1.symbol==c2.symbol){return 1;};
-
     return 0;
-
 };
 
 int main(){
