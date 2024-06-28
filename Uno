@@ -61,6 +61,11 @@ void initDeck(GameState* gameState) {
                 index++;
         }
     }
+    for (int i=0;i<66;i++)
+    { 
+        gameState->discardPile[i].color = '\0';
+        gameState->discardPile[i].symbol = '\0';
+    }
     // Barajar la baraja usando el algoritmo de Fisher-Yates
     for (int i = 59; i > 0; i--) {
         int j = rand() % (i + 1);
@@ -166,10 +171,19 @@ void agregarCard(GameState* gameState, int currentPlayer) {
         printf("Opcion invalida\n");
     }
 }
+
+void ia(GameState* gameState){
+    Card cartainicio=gameState->discardPile[indexdescarte];
+    Card cartausada;
+    
+    
+}
+
 // Función para jugar el juego
 void playGame(GameState* gameState) {
     printf("Bienvenido a Uno!\n");
     int currentPlayer = 0; // jugador actual
+    int newbaraja=1;
     while (1) {
         // Mostrar la mano del jugador actual
          printf("Tu mano: ");
@@ -179,10 +193,16 @@ void playGame(GameState* gameState) {
         printf("\n");
         // Fase de dibujar
         Card drawnCard;
+        if(newbaraja=1){
         do{
         nextCard(gameState, &drawnCard, &indexglobal, &indexdescarte);
         //condicion para que sepa que es una carta valida para inicio de juego
         }while(drawnCard.symbol =='R' || drawnCard.symbol =='S' || drawnCard.symbol =='T' || drawnCard.symbol =='W' || drawnCard.color =='W');
+        newbaraja=0;
+        }else
+        {
+            drawnCard=gameState->discardPile[indexdescarte];
+        };
         int cartavalida=0;
         do{
         printf("Tu turno! La carta descartada es: %c%c .\n", drawnCard.color, drawnCard.symbol);
@@ -195,7 +215,16 @@ void playGame(GameState* gameState) {
 
         // Procesar la carta jugada
 
-        if (cartaJugada >= 0 && cartaJugada < 7) {
+        if (cartaJugada >= 0 && cartaJugada < 7 || cartaJugada== 8 || cartaJugada== 9) {
+
+            if (cartaJugada== 8)
+            {
+                 printDeck(gameState);
+            }
+            if (cartaJugada== 9)
+            {
+                 printDeckDescatadas(gameState);
+            }
 			//card played es la carta que esta en la mesa
             Card playedCard = gameState->hands[currentPlayer][cartaJugada];
 		   if(playedCard.color==drawnCard.color||playedCard.symbol==drawnCard.symbol){
@@ -214,6 +243,8 @@ void playGame(GameState* gameState) {
                 agregarCard(gameState,0);
                 printDeckDescatadas(gameState);
             };
+        
+
         // Fase de descartar
         // Agregar la carta descartada a la pila de descarte
         //gameState->discardPile[0] = drawnCard;
