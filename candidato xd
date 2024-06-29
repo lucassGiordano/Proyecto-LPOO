@@ -6,6 +6,7 @@
 int indexglobal = 0;
 int indexdescarte = 0;
 int newbaraja = 1;
+int playDirection = 1; // 1 for clockwise, -1 for counterclockwise
 
 // Definir una estructura para representar una carta
 typedef struct {
@@ -187,6 +188,22 @@ void ia(GameState* gameState) {
     gameState->hands[1][ubichand].color = '\0'; // quitar la carta de la mano
     gameState->hands[1][ubichand].symbol = '\0'; // quitar la carta de la mano
     indexdescarte++;
+
+    if (cartausada.symbol == 'R') {
+        playDirection = -playDirection;
+        printf("El sentido del juego ha cambiado!\n");
+    } else if (cartausada.symbol == 'S') {
+        printf("Tu turno fue saltado!\n");
+        ia(gameState);
+    } else if (cartausada.symbol == 'T') {
+        printf("Debes tomar dos cartas!\n");
+        agregarCard(gameState, 0, rand() % 7);
+        agregarCard(gameState, 0, rand() % 7);
+    } else if (cartausada.symbol == 'W') {
+        printf("Tu contrincante cambió el color!\n");
+        char newColor = "BRGY"[rand() % 4];
+        gameState->discardPile[indexdescarte - 1].color = newColor;
+    }
 }
 
 void playGame(GameState* gameState) {
@@ -219,13 +236,31 @@ void playGame(GameState* gameState) {
 
             if (cartaJugada >= 0 && cartaJugada < 7) {
                 Card playedCard = gameState->hands[currentPlayer][cartaJugada];
-                if (playedCard.color == drawnCard.color || playedCard.symbol == drawnCard.symbol) {
+                if (playedCard.color == drawnCard.color || playedCard.symbol == drawnCard.symbol || playedCard.color == 'W') {
                     gameState->discardPile[indexdescarte].color = playedCard.color;
                     gameState->discardPile[indexdescarte].symbol = playedCard.symbol;
                     gameState->hands[currentPlayer][cartaJugada].color = '\0';
                     gameState->hands[currentPlayer][cartaJugada].symbol = '\0';
                     cartavalida = 1;
                     indexdescarte++;
+                    if (playedCard.symbol == 'R') {
+                        playDirection = -playDirection;
+                        printf("El sentido del juego ha cambiado!\n");
+                    } else if (playedCard.symbol == 'S') {
+                        printf("Saltaste el turno del siguiente jugador!\n");
+                        currentPlayer = (currentPlayer + playDirection + gameState->playerCount) % gameState->playerCount;
+                    } else if (playedCard.symbol == 'T') {
+                        printf("El siguiente jugador debe tomar dos cartas!\n");
+                        int nextPlayer = (currentPlayer + playDirection + gameState->playerCount) % gameState->playerCount;
+                        agregarCard(gameState, nextPlayer, rand() % 7);
+                        agregarCard(gameState, nextPlayer, rand() % 7);
+                        currentPlayer = nextPlayer;
+                    } else if (playedCard.symbol == 'W') {
+                        printf("Cambiaste el color! Elige un color (B, R, G, Y): ");
+                        char newColor;
+                        scanf(" %c", &newColor);
+                        gameState->discardPile[indexdescarte - 1].color = newColor;
+                    }
                 } else {
                     printf("opcion invalida\n");
                 }
