@@ -231,7 +231,7 @@ void playGame(GameState* gameState) {
         do {
             printf("Tu turno! La carta descartada es: %c%c\n", drawnCard.color, drawnCard.symbol);
             int cartaJugada = -1;
-            printf("¿Qué carta deseas jugar? (0-6, 8 para ver el deck, 9 para ver descartadas): ");
+            printf("¿Qué carta deseas jugar? (0-6 para jugar, 7 para tomar una carta, 8 para ver el deck, 9 para ver descartadas): ");
             scanf("%d", &cartaJugada);
 
             if (cartaJugada >= 0 && cartaJugada < 7) {
@@ -262,29 +262,25 @@ void playGame(GameState* gameState) {
                         gameState->discardPile[indexdescarte - 1].color = newColor;
                     }
                 } else {
-                    printf("opcion invalida\n");
+                    printf("Opción inválida\n");
                 }
             } else if (cartaJugada == 7) {
-                int opc;
-                printf("Que carta desea descartar? (0-6): ");
-                scanf("%d", &opc);
-                agregarCard(gameState, 0, opc);
-                drawnCard = gameState->discardPile[indexdescarte - 1];
+                agregarCard(gameState, currentPlayer, rand() % 7);
             } else if (cartaJugada == 8) {
                 printDeck(gameState);
             } else if (cartaJugada == 9) {
                 printDeckDescatadas(gameState);
             } else {
-                printf("opcion invalida\n");
+                printf("Opción inválida\n");
             }
         } while (cartavalida != 1);
 
         printf("La carta descartada ahora es %c%c\n", gameState->discardPile[indexdescarte - 1].color, gameState->discardPile[indexdescarte - 1].symbol);
-        printf("Tu contricante va a jugar!\n");
+        printf("Tu contrincante va a jugar!\n");
         ia(gameState);
 
         if (conditionWin(gameState)) {
-            printf("GANASTE\n");
+            printf("¡GANASTE!\n");
             break;
         }
     }
