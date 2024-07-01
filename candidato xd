@@ -2,6 +2,13 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <windows.h> 
+#include <conio.h>  // Librería para getch() en Windows
+
+void mostrarMenu();
+void jugar();
+void comoJugar();
+
 
 int indexglobal = 0;
 int indexdescarte = 0;
@@ -251,10 +258,35 @@ void ia(GameState* gameState) {
     checkAndAddCards(gameState, 1); // verificar y agregar cartas si es necesario
 }
 
+int contarCartasEnMano(GameState* gameState, int jugador) {
+    // Verificar que el jugador sea válido (0 o 1)
+    if (jugador < 0 || jugador > 1) {
+        printf("Error: Jugador no válido.\n");
+        return -1;  // Valor de retorno indicando error
+    }
+
+    // Obtener la cantidad de cartas en la mano del jugador especificado
+    int cantidadCartas = gameState->players[jugador].cardCount;
+    return cantidadCartas;
+}
+
+
+///impresion de las cartas
+void printcartas(GameState* gameState,int jugador)
+    {
+        int cantidad=contarCartasEnMano(gameState,jugador);
+        for(int i=0;i<cantidad;i++)
+        {
+            
+              printf("  ⠄⠄⣰⣾⣿⣿⣿⠿⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣆⠄⠄\n");
+        }
+    };
+
 void playGame(GameState* gameState) {
     printf("Bienvenido a Uno!\n");
     int currentPlayer = 0; // jugador actual
     while (1) {
+        void printcartas();
         printf("Tu mano: ");
         for (int i = 0; i < 7; i++) {
             printf("%c%c|", gameState->players[currentPlayer].hand[i].color, gameState->players[currentPlayer].hand[i].symbol);
@@ -345,14 +377,86 @@ int CartaValida(GameState* gameState, Card c1, Card c2) {
 }
 
 int main() {
+    int opcion;
+
+    // Obtener el tamaño de la pantalla
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    COORD NewSBSize = GetLargestConsoleWindowSize(hOut);
+    SMALL_RECT DisplayArea = {0, 0, 0, 0};
+
+    DisplayArea.Right = NewSBSize.X - 1;
+    DisplayArea.Bottom = NewSBSize.Y - 1;
+
+    SetConsoleScreenBufferSize(hOut, NewSBSize);
+    SetConsoleWindowInfo(hOut, TRUE, &DisplayArea);
+
+    do {
+        system("cls");
+        mostrarMenu();
+        printf("\nSeleccione una opcion: ");
+        scanf("%d", &opcion);
+
+        switch (opcion) {
+            case 1:
+                jugar();
+                break;
+            case 2:
+                comoJugar();
+                break;
+            case 3:
+                printf("Saliendo del juego...\n");
+                break;
+            default:
+                printf("Opcion no valida. Intente nuevamente.\n");
+                break;
+        }
+
+        if (opcion != 3) {
+            printf("\nPresione cualquier tecla para continuar...\n");
+            getch();
+        }
+
+    } while (opcion != 3);
+
+    return 0;
+}
+
+void mostrarMenu() {
+    // Tamaño de la ventana de consola para 1920x1080
+    const int ventanaAncho = 120;  // 1920 / 16
+    const int ventanaAlto = 30;    // 1080 / 36
+
+    // Calcula las posiciones para centrar el texto en la ventana
+    int margenHorizontal = (ventanaAncho - 30) / 2; // 30 es la longitud máxima de las líneas del menú
+
+    // Limpiar pantalla
+    system("cls");
+
+    // Imprimir las opciones del menú centradas
+    printf("\n");
+    printf("%*sJUEGO\n", margenHorizontal + 10, "");
+    printf("%*sCOMO JUGAR\n", margenHorizontal + 9, "");
+    printf("%*sSALIR\n", margenHorizontal + 10, "");
+
+    // Línea separadora
+    for (int i = 0; i < ventanaAncho; ++i) {
+        printf("-");
+    }
+}
+
+void jugar() {
+    printf("Iniciando juego...\n");
     srand(time(0)); // semilla Aleatoria
     GameState gameState;
     gameState.playerCount = 2; // 2 jugadores por ahora
     initDeck(&gameState);
-    printDeck(&gameState);
     initHands(&gameState);
-    printhand(&gameState);
-    printDeck(&gameState);
     playGame(&gameState);
-    return 0;
+
 }
+
+void comoJugar() {
+    printf("Instrucciones de juego:\n");
+    // Aquí van las instrucciones de cómo jugar
+}
+
