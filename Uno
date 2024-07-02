@@ -355,6 +355,10 @@ void imprimirCarta(Card card) {
         if (fgets(line, MAX_LINE_LENGTH, fp) != NULL) {
             // Si aún hay líneas por procesar
             finished = 0;
+            for(int i=0;i<99;i++)
+                {
+                    putchar(' ');
+                }
             for (int j = 0; j < CARACTERES_POR_CARTA; j++) {
                 if (line[j] == '\0' || line[j] == '\n') {
                     putchar(' '); // Rellena con espacios si la línea es corta
@@ -449,13 +453,6 @@ void playGame(GameState* gameState) {
     int currentPlayer = 0; // jugador actual
     while (1) {
 
-        printf("Tu mano: ");
-        for (int i = 0; i < 7; i++) {
-            printf("%c%c|", gameState->players[currentPlayer].hand[i].color, gameState->players[currentPlayer].hand[i].symbol);
-        }
-        printf(" (Cartas extras: %d)\n", gameState->players[currentPlayer].extraCards);
-        printf("Cartas extras del oponente: %d\n", gameState->players[1].extraCards);
-
         Card drawnCard;
         if (newbaraja == 1) {
             do {
@@ -470,12 +467,18 @@ void playGame(GameState* gameState) {
         int cartavalida = 0;
         do {
             imprimirArchivoEnemigo(gameState,"carta.txt",1);
+            printf("Cartas extras del oponente: %d\n", gameState->players[1].extraCards);
             printf("Tu turno! La carta descartada es: %c%c\n", drawnCard.color, drawnCard.symbol);
             printf("\n\n");
             imprimirCarta(drawnCard);
             printf("\n\n");
             int cartaJugada = -1;
             imprimirArchivo(gameState);
+            printf("Tu mano: ");
+            for (int i = 0; i < 7; i++) {
+            printf("%c%c|", gameState->players[currentPlayer].hand[i].color, gameState->players[currentPlayer].hand[i].symbol);
+             }
+             printf(" (Cartas extras: %d)\n", gameState->players[currentPlayer].extraCards);
             printf("¿Qué carta deseas jugar? (0-6 para jugar, 7 para tomar una carta, 8 para ver el deck, 9 para ver descartadas): ");
             scanf("%d", &cartaJugada);
             if (cartaJugada >= 0 && cartaJugada < 7) {
@@ -530,7 +533,10 @@ void playGame(GameState* gameState) {
         ia(gameState);
 
         if (conditionWin(gameState)) {
-            printf("¡GANASTE!\n");
+            system("cls");
+            printf("¡GANASTE! :)\n");
+            getchar();
+            getchar();
             break;
         }
 
@@ -601,6 +607,7 @@ void mostrarMenu() {
 
 void jugar() {
     printf("Iniciando juego...\n");
+    system("cls");
     srand(time(0)); // semilla Aleatoria
     GameState gameState;
     gameState.playerCount = 2; // 2 jugadores por ahora
