@@ -466,12 +466,14 @@ void playGame(GameState* gameState) {
 
         int cartavalida = 0;
         do {
+            system("cls");
             imprimirArchivoEnemigo(gameState,"carta.txt",1);
             printf("Cartas extras del oponente: %d\n", gameState->players[1].extraCards);
             printf("Tu turno! La carta descartada es: %c%c\n", drawnCard.color, drawnCard.symbol);
             printf("\n\n");
             imprimirCarta(drawnCard);
             printf("\n\n");
+            checkAndAddCards(gameState, 0); // verificar y agregar cartas si es necesario
             int cartaJugada = -1;
             imprimirArchivo(gameState);
             printf("Tu mano: ");
@@ -531,16 +533,15 @@ void playGame(GameState* gameState) {
         printf("La carta descartada ahora es %c%c\n", gameState->discardPile[indexdescarte - 1].color, gameState->discardPile[indexdescarte - 1].symbol);
         printf("Tu contrincante va a jugar!\n");
         ia(gameState);
-
         if (conditionWin(gameState)) {
             system("cls");
             printf("¡GANASTE! :)\n");
             getchar();
             getchar();
+            exit(0);
             break;
         }
 
-        checkAndAddCards(gameState, 0); // verificar y agregar cartas si es necesario
         system("cls");
     }
 }
@@ -620,4 +621,13 @@ void jugar() {
 void comoJugar() {
     printf("Instrucciones de juego:\n");
     // Aquí van las instrucciones de cómo jugar
+    printf("La unica forma de ganar es quedarse sin cartas en la mano\n");
+    printf("Cada jugador empieza con 7 cartas y una carta en el medio\n");
+    printf("Los jugadores pueden tener ""CARTAS EXTRA"" que son cartas que se va a agregar si es que se tiene espacio en la mano\n");
+    printf("Se van descartando las cartas al medio si son compatibles, las cartas son compatibles si:\n");
+    printf("Son el mismo color o simbolo o numero,y existen 4 cartas especiales, R,S,T,W,\n");
+    printf("R y S hacen que vuelvas a jugar tu turno\n");
+    printf("T se agrega al oponente 2 cartas\n");
+    printf("WW se puede cambiar el color\n");
+    printf("W4 se puede cambiar el color y agrega 4 al oponente\n");
 }
