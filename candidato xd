@@ -4,11 +4,15 @@
 #include <string.h>
 #include <windows.h> 
 #include <conio.h>  // Librería para getch() en Windows
+#define MAX_LINE_LENGTH 1000
+#define CARACTERES_POR_PUNTO 30
+#define MAX_CARTAS_EN_MANO 7
+#define CARACTERES_POR_CARTA 33
+#define CARTAS_EN_MANO 7
 
 void mostrarMenu();
 void jugar();
 void comoJugar();
-
 
 int indexglobal = 0;
 int indexdescarte = 0;
@@ -272,21 +276,100 @@ int contarCartasEnMano(GameState* gameState, int jugador) {
 
 
 ///impresion de las cartas
-void printcartas(GameState* gameState,int jugador)
-    {
-        int cantidad=contarCartasEnMano(gameState,jugador);
-        for(int i=0;i<cantidad;i++)
-        {
-            
-              printf("  ⠄⠄⣰⣾⣿⣿⣿⠿⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣆⠄⠄\n");
+void imprimirArchivoEnemigo(GameState *gameState, const char *nombreArchivo, int modo) {
+    FILE *fp;
+    char line[MAX_LINE_LENGTH];
+
+    // Abre el archivo en modo lectura
+    fp = fopen(nombreArchivo, "r");
+    if (fp == NULL) {
+        perror("Error al abrir el archivo");
+        return;
+    }
+
+    // Lee línea por línea y muestra en consola
+    while (fgets(line, MAX_LINE_LENGTH, fp) != NULL) {
+        int conteo = contarCartasEnMano(gameState, 1); // Obtener el conteo de caracteres
+        int caracteres_a_imprimir = conteo * 33;
+
+        // Imprimir la cantidad de caracteres determinada
+        for (int i = 0; i < caracteres_a_imprimir && line[i] != '\0'; i++) {
+            putchar(line[i]);
         }
-    };
+
+        // Imprimir una nueva línea después de imprimir los caracteres necesarios
+        putchar('\n');
+    }
+
+    // Cierra el archivo
+    fclose(fp);
+}
+
+void obtenerNombreArchivo(Card card, char *nombreArchivo) {
+    if (card.symbol >= '0' && card.symbol <= '9') {
+        sprintf(nombreArchivo, "carta%c.txt", card.symbol);
+    } else {
+        sprintf(nombreArchivo, "carta%c.txt", card.symbol);
+    }
+}
+
+void setColor(int textColor, int bgColor) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), textColor | bgColor);
+}
+
+void imprimirArchivo(GameState* gameState) {
+    FILE *fps[CARTAS_EN_MANO];
+    char line[MAX_LINE_LENGTH];
+    char nombreArchivo[20];
+    int finished = 0;
+
+    // Abre todos los archivos correspondientes a las cartas en la mano del jugador
+    for (int i = 0; i < CARTAS_EN_MANO; i++) {
+        obtenerNombreArchivo(gameState->players[0].hand[i], nombreArchivo);
+        fps[i] = fopen(nombreArchivo, "r");
+        if (fps[i] == NULL) {
+            perror("Error al abrir el archivo");
+            return;
+        }
+    }
+
+    // Procesa cada línea de los archivos de las cartas
+    while (!finished) {
+        finished = 1; // Asume que terminamos, a menos que veamos lo contrario
+
+        for (int i = 0; i < CARTAS_EN_MANO; i++) {
+            if (fgets(line, MAX_LINE_LENGTH, fps[i]) != NULL) {
+                // Si aún hay líneas por procesar
+                finished = 0;
+                for (int j = 0; j < CARACTERES_POR_CARTA; j++) {
+                    if (line[j] == '\0' || line[j] == '\n') {
+                        putchar(' '); // Rellena con espacios si la línea es corta
+                    } else {
+                        putchar(line[j]);
+                    }
+                }
+            } else {
+                // Si el archivo se terminó, rellena con espacios
+                for (int j = 0; j < CARACTERES_POR_CARTA; j++) {
+                    putchar(' ');
+                }
+            }
+        }
+        putchar('\n'); // Nueva línea después de procesar todas las cartas para esta línea
+    }
+
+    // Cierra todos los archivos abiertos
+    for (int i = 0; i < CARTAS_EN_MANO; i++) {
+        fclose(fps[i]);
+    }
+}
 
 void playGame(GameState* gameState) {
     printf("Bienvenido a Uno!\n");
     int currentPlayer = 0; // jugador actual
     while (1) {
-        void printcartas();
+
+    imprimirArchivo(gameState);
         printf("Tu mano: ");
         for (int i = 0; i < 7; i++) {
             printf("%c%c|", gameState->players[currentPlayer].hand[i].color, gameState->players[currentPlayer].hand[i].symbol);
@@ -307,6 +390,7 @@ void playGame(GameState* gameState) {
 
         int cartavalida = 0;
         do {
+            imprimirArchivoEnemigo(gameState,"carta.txt",1);
             printf("Tu turno! La carta descartada es: %c%c\n", drawnCard.color, drawnCard.symbol);
             int cartaJugada = -1;
             printf("¿Qué carta deseas jugar? (0-6 para jugar, 7 para tomar una carta, 8 para ver el deck, 9 para ver descartadas): ");
@@ -378,18 +462,6 @@ int CartaValida(GameState* gameState, Card c1, Card c2) {
 
 int main() {
     int opcion;
-
-    // Obtener el tamaño de la pantalla
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    COORD NewSBSize = GetLargestConsoleWindowSize(hOut);
-    SMALL_RECT DisplayArea = {0, 0, 0, 0};
-
-    DisplayArea.Right = NewSBSize.X - 1;
-    DisplayArea.Bottom = NewSBSize.Y - 1;
-
-    SetConsoleScreenBufferSize(hOut, NewSBSize);
-    SetConsoleWindowInfo(hOut, TRUE, &DisplayArea);
-
     do {
         system("cls");
         mostrarMenu();
@@ -459,4 +531,3 @@ void comoJugar() {
     printf("Instrucciones de juego:\n");
     // Aquí van las instrucciones de cómo jugar
 }
-
