@@ -2,9 +2,22 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <windows.h> 
+#include <conio.h>  // Librería para getch() en Windows
+#define MAX_LINE_LENGTH 1000
+#define CARACTERES_POR_PUNTO 30
+#define MAX_CARTAS_EN_MANO 7
+#define CARACTERES_POR_CARTA 33
+#define CARTAS_EN_MANO 7
+
+void mostrarMenu();
+void jugar();
+void comoJugar();
 
 int indexglobal = 0;
 int indexdescarte = 0;
+int newbaraja = 1;
+int playDirection = 1; // 1 for clockwise, -1 for counterclockwise
 
 // Definir una estructura para representar una carta
 typedef struct {
@@ -12,15 +25,21 @@ typedef struct {
     char symbol; // '0'-'9' para el nombre de las cartas, o 'R', 'S', 'T' o 'W' para cartas especiales
 } Card;
 
+// Definir una estructura para representar el estado del jugador
+typedef struct {
+    Card hand[7]; // mano del jugador (7 cartas)
+    int cardCount; // contador de cartas en mano
+    int extraCards; // contador de cartas adicionales
+} PlayerState;
+
 // Definir una estructura para representar el estado del juego
 typedef struct {
-    Card deck[66]; // la baraja de cartas
-    Card hands[10][7]; // manos de los jugadores (10 jugadores, 7 cartas cada uno)
-    Card discardPile[66]; // la pila de descarte
+    Card deck[60]; // la baraja de cartas
+    PlayerState players[10]; // estado de los jugadores (10 jugadores)
+    Card discardPile[60]; // la pila de descarte
     int playerCount; // número de jugadores
 } GameState;
 
-// Función para inicializar la baraja
 // Función para inicializar la baraja
 void initDeck(GameState* gameState) {
     int index = 0;
@@ -30,39 +49,38 @@ void initDeck(GameState* gameState) {
     for (int colorIndex = 0; colorIndex < sizeof(colors); colorIndex++) {
         char color = colors[colorIndex];
         for (int i = 0; i < 15; i++) {
-                if (i < 10) {
-                    gameState->deck[index].color = color;
-                    gameState->deck[index].symbol = '0' + i;
-                     } else {
-                    switch (i) {
-                        case 10:
+            if (i < 10) {
+                gameState->deck[index].color = color;
+                gameState->deck[index].symbol = '0' + i;
+            } else {
+                switch (i) {
+                    case 10:
                         gameState->deck[index].color = color;
                         gameState->deck[index].symbol = 'R'; // Revertir
                         break;
-                     case 11:
+                    case 11:
                         gameState->deck[index].color = color;
                         gameState->deck[index].symbol = 'S'; // Saltar
                         break;
-                     case 12:
+                    case 12:
                         gameState->deck[index].color = color;
                         gameState->deck[index].symbol = 'T'; // Tomar Dos
                         break;
-                      default:
-                        if(index%2==0){
+                    default:
+                        if (index % 2 == 0) {
                             gameState->deck[index].color = 'W'; // Cambiar color
                             gameState->deck[index].symbol = '4';
-                        }else{
+                        } else {
                             gameState->deck[index].color = 'W'; // Cambiar color
                             gameState->deck[index].symbol = 'W';
                         }
                         break;
-                    }
                 }
-                index++;
+            }
+            index++;
         }
     }
-    for (int i=0;i<66;i++)
-    { 
+    for (int i = 0; i < 60; i++) {
         gameState->discardPile[i].color = '\0';
         gameState->discardPile[i].symbol = '\0';
     }
@@ -75,17 +93,11 @@ void initDeck(GameState* gameState) {
     }
 }
 
-
 // Función para imprimir el maso de cartas
 void printDeck(GameState* gameState) {
     printf("Deck:\n");
     for (int i = 0; i < 60; i++) {
-        if (gameState->deck[i].symbol == 'R' || gameState->deck[i].symbol == 'S' || gameState->deck[i].symbol == 'T' || gameState->deck[i].symbol == 'W') {
-            printf("%c%c ", gameState->deck[i].color, gameState->deck[i].symbol);
-        } else {
-            printf("%c%c ", gameState->deck[i].color, gameState->deck[i].symbol);
-        }
-        // Salto de línea después de cada 5 cartas
+        printf("%c%c ", gameState->deck[i].color, gameState->deck[i].symbol);
         if ((i + 1) % 15 == 0) {
             printf("\n");
         }
@@ -94,14 +106,9 @@ void printDeck(GameState* gameState) {
 }
 
 void printDeckDescatadas(GameState* gameState) {
-    printf("Deck:\n");
+    printf("Deck descartadas:\n");
     for (int i = 0; i < 60; i++) {
-        if (gameState->discardPile[i].symbol == 'R' || gameState->discardPile[i].symbol == 'S' || gameState->discardPile[i].symbol == 'T' || gameState->discardPile[i].symbol == 'W') {
-            printf("%c%c ", gameState->discardPile[i].color, gameState->discardPile[i].symbol);
-        } else {
-            printf("%c%c ", gameState->discardPile[i].color, gameState->discardPile[i].symbol);
-        }
-        // Salto de línea después de cada 5 cartas
+        printf("%c%c ", gameState->discardPile[i].color, gameState->discardPile[i].symbol);
         if ((i + 1) % 15 == 0) {
             printf("\n");
         }
@@ -109,12 +116,13 @@ void printDeckDescatadas(GameState* gameState) {
     printf("\n");
 }
 
-
 // Función para inicializar las manos de los jugadores
 void initHands(GameState* gameState) {
     for (int i = 0; i < 2; i++) {
+        gameState->players[i].cardCount = 7;
+        gameState->players[i].extraCards = 0;
         for (int j = 0; j < 7; j++) {
-            gameState->hands[i][j] = gameState->deck[indexglobal];
+            gameState->players[i].hand[j] = gameState->deck[indexglobal];
             gameState->deck[indexglobal].color = '\0'; // quitar la carta de la baraja
             gameState->deck[indexglobal].symbol = '\0';
             indexglobal++;
@@ -122,27 +130,30 @@ void initHands(GameState* gameState) {
     }
 }
 
-void printhand(GameState* gameState){
-	for (int i = 0; i < 2 ; i++) {
+void printhand(GameState* gameState) {
+    for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 7; j++) {
-            printf("%c%c ", gameState->hands[i][j].symbol,gameState->hands[i][j].color);
+            printf("%c%c ", gameState->players[i].hand[j].color, gameState->players[i].hand[j].symbol);
         }
         printf(" / ");
     }
-};
+    printf("\n");
+}
 
-int conditionWin(GameState* gameState){
-	for(int j=0;j<2;j++){
-		int conteo=0;
-	for(int i=0;i<7;i++){
-	if(gameState->hands[j][i].symbol=='\0'&&gameState->hands[j][i].color=='\0'){
-		conteo++;
-		}
-	};
-		if(conteo>=7){return 1;};
-			};
-		return 0;
-	};
+int conditionWin(GameState* gameState) {
+    for (int j = 0; j < 2; j++) {
+        int conteo = 0;
+        for (int i = 0; i < 7; i++) {
+            if (gameState->players[j].hand[i].symbol == '\0' && gameState->players[j].hand[i].color == '\0') {
+                conteo++;
+            }
+        }
+        if (conteo >= 7) {
+            return 1;
+        }
+    }
+    return 0;
+}
 
 void nextCard(GameState* gameState, Card* drawnCard, int* indexglobal, int* indexdescarte) {
     *drawnCard = gameState->deck[*indexglobal];
@@ -151,139 +162,455 @@ void nextCard(GameState* gameState, Card* drawnCard, int* indexglobal, int* inde
     gameState->deck[*indexglobal].color = '\0'; // quitar la carta de la baraja
     (*indexglobal)++;
     (*indexdescarte)++;
-
 }
-void agregarCard(GameState* gameState, int currentPlayer) {
-    printf("Que carta desea descartar? (0-6): ");
-    int opc;
-    scanf("%d", &opc);
+
+void agregarCard(GameState* gameState, int currentPlayer, int opc) {
     if (opc >= 0 && opc < 7) {
-        Card newCard;
-        nextCard(gameState, &newCard, &indexglobal, &indexdescarte);
-        gameState->hands[currentPlayer][opc].color = newCard.color; // add the new card to the player's hand
-        gameState->hands[currentPlayer][opc].symbol = newCard.symbol;
+        Card newCard = gameState->deck[indexglobal];
+        gameState->deck[indexglobal].symbol = '\0';
+        gameState->deck[indexglobal].color = '\0'; // quitar la carta de la baraja
+        indexglobal++;
+        gameState->players[currentPlayer].hand[opc].color = newCard.color; // add the new card to the player's hand
+        gameState->players[currentPlayer].hand[opc].symbol = newCard.symbol;
+        gameState->players[currentPlayer].cardCount++; // incrementar el contador de cartas
         printf("Tu mano: ");
         for (int i = 0; i < 7; i++) {
-            printf("%c%c|", gameState->hands[currentPlayer][i].color, gameState->hands[currentPlayer][i].symbol);
+            printf("%c%c|", gameState->players[currentPlayer].hand[i].color, gameState->players[currentPlayer].hand[i].symbol);
         }
         printf("\n");
     } else {
         printf("Opcion invalida\n");
     }
 }
-
-void ia(GameState* gameState){
-    Card cartainicio=gameState->discardPile[indexdescarte];
-    Card cartausada;
-    
-    
+void checkAndAddCards(GameState* gameState, int currentPlayer) {
+    while (gameState->players[currentPlayer].cardCount < 7 && gameState->players[currentPlayer].extraCards > 0) {
+        printf("Jugador actual: %d\n", currentPlayer);
+        printf("Cartas extra por agregar: %d\n", gameState->players[currentPlayer].extraCards);
+        
+        for (int i = 0; i < 7; i++) {
+            if (gameState->players[currentPlayer].hand[i].color == '\0' && gameState->players[currentPlayer].hand[i].symbol == '\0') {
+                agregarCard(gameState, currentPlayer, i);
+                printf("Se agrego una carta al espacio número %d\n", i);
+                printf("Mano actual del jugador:\n");
+                for (int j = 0; j < 7; j++) {
+                    printf("%c%c ", gameState->players[currentPlayer].hand[j].color, gameState->players[currentPlayer].hand[j].symbol);
+                }
+                printf("\n");
+                
+                gameState->players[currentPlayer].extraCards--;
+                printf("Cartas extra restantes: %d\n", gameState->players[currentPlayer].extraCards);
+                
+                if (gameState->players[currentPlayer].cardCount == 7) {
+                    printf("La mano del jugador está llena.\n");
+                    break;
+                }
+            }
+        }
+    }
 }
 
-// Función para jugar el juego
+void ia(GameState* gameState) {
+    Card cartainicio = gameState->discardPile[indexdescarte - 1];
+    Card cartausada;
+    int ubichand = -1;
+    int cartavalida = 0;
+    do {
+        for (int i = 0; i < 7; i++) {
+            if (gameState->players[1].hand[i].color == cartainicio.color || gameState->players[1].hand[i].symbol == cartainicio.symbol) {
+                cartausada = gameState->players[1].hand[i];
+                ubichand = i;
+                cartavalida = 1;
+                break;
+            }
+        }
+        if (cartavalida == 0) {
+            int CartaDeMazoAleatorea = rand() % 7;
+            agregarCard(gameState, 1, CartaDeMazoAleatorea);
+        }
+    } while (cartavalida == 0);
+
+    gameState->discardPile[indexdescarte].color = cartausada.color;
+    gameState->discardPile[indexdescarte].symbol = cartausada.symbol;
+    printf("Tu contrincante descartó %c%c\n", cartausada.color, cartausada.symbol);
+    gameState->players[1].hand[ubichand].color = '\0'; // quitar la carta de la mano
+    gameState->players[1].hand[ubichand].symbol = '\0'; // quitar la carta de la mano
+    gameState->players[1].cardCount--; // decrementar el contador de cartas
+    indexdescarte++;
+
+    if (cartausada.symbol == 'R') {
+        playDirection = -playDirection;
+        printf("El sentido del juego ha cambiado!\n");
+         ia(gameState);
+    } else if (cartausada.symbol == 'S') {
+        printf("Tu turno fue saltado!\n");
+        ia(gameState);
+    } else if (cartausada.symbol == 'T') {
+        printf("Debes tomar dos cartas!\n");
+        gameState->players[0].extraCards += 2;
+    } else if (cartausada.symbol == '4' && cartausada.color == 'W') {
+        printf("Debes tomar cuatro cartas!\n");
+        gameState->players[0].extraCards += 4;
+        printf("Tu contrincante cambió el color!\n");
+        char newColor = "BRGY"[rand() % 4];
+        gameState->discardPile[indexdescarte - 1].color = newColor;
+    } else if (cartausada.symbol == 'W') {
+        printf("Tu contrincante cambió el color!\n");
+        char newColor = "BRGY"[rand() % 4];
+        gameState->discardPile[indexdescarte - 1].color = newColor;
+    }
+
+    checkAndAddCards(gameState, 1); // verificar y agregar cartas si es necesario
+}
+
+int contarCartasEnMano(GameState* gameState, int jugador) {
+    // Verificar que el jugador sea válido (0 o 1)
+    if (jugador < 0 || jugador > 1) {
+        printf("Error: Jugador no válido.\n");
+        return -1;  // Valor de retorno indicando error
+    }
+
+    // Obtener la cantidad de cartas en la mano del jugador especificado
+    int cantidadCartas = gameState->players[jugador].cardCount;
+    return cantidadCartas;
+}
+
+
+///impresion de las cartas
+void imprimirArchivoEnemigo(GameState *gameState, const char *nombreArchivo, int modo) {
+    FILE *fp;
+    char line[MAX_LINE_LENGTH];
+
+    // Abre el archivo en modo lectura
+    fp = fopen(nombreArchivo, "r");
+    if (fp == NULL) {
+        perror("Error al abrir el archivo");
+        return;
+    }
+
+    // Lee línea por línea y muestra en consola
+    while (fgets(line, MAX_LINE_LENGTH, fp) != NULL) {
+        int conteo = contarCartasEnMano(gameState, 1); // Obtener el conteo de caracteres
+        int caracteres_a_imprimir = conteo * 33;
+
+        // Imprimir la cantidad de caracteres determinada
+        for (int i = 0; i < caracteres_a_imprimir && line[i] != '\0'; i++) {
+            putchar(line[i]);
+        }
+
+        // Imprimir una nueva línea después de imprimir los caracteres necesarios
+        putchar('\n');
+    }
+
+    // Cierra el archivo
+    fclose(fp);
+}
+
+void obtenerNombreArchivo(Card card, char *nombreArchivo) {
+    if (card.symbol == '\0' || card.symbol == ' ') {
+        sprintf(nombreArchivo, "cartanull.txt");
+    } else if (card.symbol >= '0' && card.symbol <= '9') {
+        sprintf(nombreArchivo, "carta%c.txt", card.symbol);
+    } else {
+        sprintf(nombreArchivo, "carta%c.txt", card.symbol);
+    }
+}
+
+void setColor(int textColor, int bgColor) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), textColor | (bgColor << 4));
+}
+
+void imprimirCarta(Card card) {
+    FILE *fp;
+    char line[MAX_LINE_LENGTH];
+    char nombreArchivo[20];
+    int finished = 0;
+
+    obtenerNombreArchivo(card, nombreArchivo);
+    fp = fopen(nombreArchivo, "r");
+    if (fp == NULL) {
+        perror("Error al abrir el archivo de la carta");
+        return;
+    }
+
+    // Establece el color de texto basado en el color de la carta
+    switch (card.color) {
+        case 'R':
+            setColor(12, 0); // Rojo claro sobre fondo negro
+            break;
+        case 'G':
+            setColor(10, 0); // Verde sobre fondo negro
+            break;
+        case 'B':
+            setColor(9, 0); // Azul claro sobre fondo negro
+            break;
+        case 'Y':
+            setColor(14, 0); // Amarillo sobre fondo negro
+            break;
+        default:
+            setColor(7, 0); // Blanco sobre fondo negro (por defecto)
+    }
+
+    // Procesa cada línea del archivo de la carta
+    while (!finished) {
+        if (fgets(line, MAX_LINE_LENGTH, fp) != NULL) {
+            // Si aún hay líneas por procesar
+            finished = 0;
+            for (int j = 0; j < CARACTERES_POR_CARTA; j++) {
+                if (line[j] == '\0' || line[j] == '\n') {
+                    putchar(' '); // Rellena con espacios si la línea es corta
+                } else {
+                    putchar(line[j]);
+                }
+            }
+            putchar('\n'); // Nueva línea después de procesar una línea de la carta
+        } else {
+            finished = 1; // Terminar si no hay más líneas
+        }
+    }
+
+    // Restablece el color al valor predeterminado (blanco sobre fondo negro)
+    setColor(7, 0);
+
+    // Cierra el archivo de la carta
+    fclose(fp);
+}
+
+void imprimirArchivo(GameState* gameState) {
+    FILE *fps[CARTAS_EN_MANO];
+    char line[MAX_LINE_LENGTH];
+    char nombreArchivo[20];
+    int finished = 0;
+
+    // Abre todos los archivos correspondientes a las cartas en la mano del jugador
+    for (int i = 0; i < CARTAS_EN_MANO; i++) {
+        obtenerNombreArchivo(gameState->players[0].hand[i], nombreArchivo);
+        fps[i] = fopen(nombreArchivo, "r");
+        if (fps[i] == NULL) {
+            perror("Error al abrir el archivo");
+            return;
+        }
+    }
+
+    // Procesa cada línea de los archivos de las cartas
+    while (!finished) {
+        finished = 1; // Asume que terminamos, a menos que veamos lo contrario
+
+        for (int i = 0; i < CARTAS_EN_MANO; i++) {
+            // Establece el color de texto basado en el color de la carta
+            switch (gameState->players[0].hand[i].color) {
+                case 'R':
+                    setColor(12, 0); // Rojo claro sobre fondo negro
+                    break;
+                case 'G':
+                    setColor(10, 0); // Verde sobre fondo negro
+                    break;
+                case 'B':
+                    setColor(9, 0); // Azul claro sobre fondo negro
+                    break;
+                case 'Y':
+                    setColor(14, 0); // Amarillo sobre fondo negro
+                    break;
+                default:
+                    setColor(7, 0); // Blanco sobre fondo negro (por defecto)
+            }
+
+            if (fgets(line, MAX_LINE_LENGTH, fps[i]) != NULL) {
+                // Si aún hay líneas por procesar
+                finished = 0;
+                for (int j = 0; j < CARACTERES_POR_CARTA; j++) {
+                    if (line[j] == '\0' || line[j] == '\n') {
+                        putchar(' '); // Rellena con espacios si la línea es corta
+                    } else {
+                        putchar(line[j]);
+                    }
+                }
+            } else {
+                // Si el archivo se terminó, rellena con espacios
+                for (int j = 0; j < CARACTERES_POR_CARTA; j++) {
+                    putchar(' ');
+                }
+            }
+        }
+        putchar('\n'); // Nueva línea después de procesar todas las cartas para esta línea
+    }
+
+    // Restablece el color al valor predeterminado (blanco sobre fondo negro)
+    setColor(7, 0);
+
+    // Cierra todos los archivos abiertos
+    for (int i = 0; i < CARTAS_EN_MANO; i++) {
+        fclose(fps[i]);
+    }
+}
+
+
 void playGame(GameState* gameState) {
     printf("Bienvenido a Uno!\n");
     int currentPlayer = 0; // jugador actual
-    int newbaraja=1;
     while (1) {
-        // Mostrar la mano del jugador actual
-         printf("Tu mano: ");
+
+        printf("Tu mano: ");
         for (int i = 0; i < 7; i++) {
-        printf("%c%c|", gameState->hands[currentPlayer][i].color, gameState->hands[currentPlayer][i].symbol);
+            printf("%c%c|", gameState->players[currentPlayer].hand[i].color, gameState->players[currentPlayer].hand[i].symbol);
         }
-        printf("\n");
-        // Fase de dibujar
+        printf(" (Cartas extras: %d)\n", gameState->players[currentPlayer].extraCards);
+        printf("Cartas extras del oponente: %d\n", gameState->players[1].extraCards);
+
         Card drawnCard;
-        if(newbaraja=1){
-        do{
-        nextCard(gameState, &drawnCard, &indexglobal, &indexdescarte);
-        //condicion para que sepa que es una carta valida para inicio de juego
-        }while(drawnCard.symbol =='R' || drawnCard.symbol =='S' || drawnCard.symbol =='T' || drawnCard.symbol =='W' || drawnCard.color =='W');
-        newbaraja=0;
-        }else
-        {
-            drawnCard=gameState->discardPile[indexdescarte];
-        };
-        int cartavalida=0;
-        do{
-        printf("Tu turno! La carta descartada es: %c%c .\n", drawnCard.color, drawnCard.symbol);
+        if (newbaraja == 1) {
+            do {
+                printf("se usa next card desde el inicio\n");
+                nextCard(gameState, &drawnCard, &indexglobal, &indexdescarte);
+            } while (drawnCard.symbol == 'R' || drawnCard.symbol == 'S' || drawnCard.symbol == 'T' || drawnCard.symbol == 'W' || drawnCard.color == 'W');
+            newbaraja = 0;
+        } else {
+            drawnCard = gameState->discardPile[indexdescarte - 1];
+        }
 
-         int cartaJugada = -1;
-
-        printf("¿Qué carta deseas jugar? (0-6): ");
-
-        scanf("%d", &cartaJugada);
-
-        // Procesar la carta jugada
-
-        if (cartaJugada >= 0 && cartaJugada < 7 || cartaJugada== 8 || cartaJugada== 9) {
-
-            if (cartaJugada== 8)
-            {
-                 printDeck(gameState);
-            }
-            if (cartaJugada== 9)
-            {
-                 printDeckDescatadas(gameState);
-            }
-			//card played es la carta que esta en la mesa
-            Card playedCard = gameState->hands[currentPlayer][cartaJugada];
-		   if(playedCard.color==drawnCard.color||playedCard.symbol==drawnCard.symbol){
-		   	//en caso de que quiera verificar el ganar
-			//if(1){
-			//copiamos la carta y la ponemos en descarte
-            gameState->discardPile[indexdescarte].color = gameState->hands[currentPlayer][cartaJugada].color;
-            gameState->discardPile[indexdescarte].symbol = gameState->hands[currentPlayer][cartaJugada].symbol;
-        	//se borra la carta de la mano del jugador
-            gameState->hands[currentPlayer][cartaJugada].color = '\0'; // quitar la carta de la mano
-            gameState->hands[currentPlayer][cartaJugada].symbol = '\0'; // quitar la carta de la mano
-			cartavalida=1;
-			}else{ printf("opcion invalida\n");}
-            }else if(cartaJugada==7){ 
-                //funcion agregar carta a el maso
-                agregarCard(gameState,0);
+        int cartavalida = 0;
+        do {
+            imprimirArchivoEnemigo(gameState,"carta.txt",1);
+            printf("Tu turno! La carta descartada es: %c%c\n", drawnCard.color, drawnCard.symbol);
+            printf("\n\n");
+            imprimirCarta(drawnCard);
+            printf("\n\n");
+            int cartaJugada = -1;
+            imprimirArchivo(gameState);
+            printf("¿Qué carta deseas jugar? (0-6 para jugar, 7 para tomar una carta, 8 para ver el deck, 9 para ver descartadas): ");
+            scanf("%d", &cartaJugada);
+            if (cartaJugada >= 0 && cartaJugada < 7) {
+                Card playedCard = gameState->players[currentPlayer].hand[cartaJugada];
+                if (playedCard.color == drawnCard.color || playedCard.symbol == drawnCard.symbol || playedCard.color == 'W') {
+                    gameState->discardPile[indexdescarte].color = playedCard.color;
+                    gameState->discardPile[indexdescarte].symbol = playedCard.symbol;
+                    gameState->players[currentPlayer].hand[cartaJugada].color = '\0';
+                    gameState->players[currentPlayer].hand[cartaJugada].symbol = '\0';
+                    gameState->players[currentPlayer].cardCount--; // decrementar el contador de cartas
+                    cartavalida = 1;
+                    indexdescarte++;
+                    if (playedCard.symbol == 'R') {
+                        playDirection = -playDirection;
+                        printf("El sentido del juego ha cambiado!\n");
+                        cartavalida=0;
+                    } else if (playedCard.symbol == 'S') {
+                        printf("Saltaste el turno del siguiente jugador!\n");
+                        cartavalida=0;
+                    } else if (playedCard.symbol == 'T') {
+                        printf("El siguiente jugador debe tomar dos cartas!\n");
+                        gameState->players[1].extraCards += 2;
+                    } else if (playedCard.symbol == '4' && playedCard.color == 'W') {
+                        printf("El siguiente jugador debe tomar cuatro cartas!\n");
+                        gameState->players[1].extraCards += 4;
+                        printf("Cambiaste el color! Elige un color (B, R, G, Y): ");
+                        char newColor;
+                        scanf(" %c", &newColor);
+                        gameState->discardPile[indexdescarte - 1].color = newColor;
+                    } else if (playedCard.symbol == 'W') {
+                        printf("Cambiaste el color! Elige un color (B, R, G, Y): ");
+                        char newColor;
+                        scanf(" %c", &newColor);
+                        gameState->discardPile[indexdescarte - 1].color = newColor;
+                    }
+                } else {
+                    printf("Opción inválida\n");
+                }
+            } else if (cartaJugada == 7) {
+                agregarCard(gameState, currentPlayer, rand() % 7);
+            } else if (cartaJugada == 8) {
+                printDeck(gameState);
+            } else if (cartaJugada == 9) {
                 printDeckDescatadas(gameState);
-            };
-        
+            } else {
+                printf("Opción inválida\n");
+            }
+        } while (cartavalida != 1);
 
-        // Fase de descartar
-        // Agregar la carta descartada a la pila de descarte
-        //gameState->discardPile[0] = drawnCard;
-			
-		//falta:
-		//pedir mas cartas
-		//enemigo xd
-		//cartas especiales (que puedan hacer el efecto)
-		//que no pueda ir de downcard(carta de la mesa)
-		//re barajear cuando se terminen las cartas
-		//condicion de ganar X
-        
-        // Verificar condición de victoria
-    }while(cartavalida !=1);
-	if(conditionWin(gameState)==1){
-	printf("GANASTE\n");
-	getchar();
-	break; 
-	};
-	};
-};
+        printf("La carta descartada ahora es %c%c\n", gameState->discardPile[indexdescarte - 1].color, gameState->discardPile[indexdescarte - 1].symbol);
+        printf("Tu contrincante va a jugar!\n");
+        ia(gameState);
 
-int CartaValida(GameState* gameState,Card c1,Card c2) {
-    if(c1.color==c2.color){return 1;};
-    if(c1.symbol==c2.symbol){return 1;};
+        if (conditionWin(gameState)) {
+            printf("¡GANASTE!\n");
+            break;
+        }
+
+        checkAndAddCards(gameState, 0); // verificar y agregar cartas si es necesario
+        system("cls");
+    }
+}
+
+int CartaValida(GameState* gameState, Card c1, Card c2) {
+    return (c1.color == c2.color || c1.symbol == c2.symbol);
+}
+
+int main() {
+    int opcion;
+    do {
+        system("cls");
+        mostrarMenu();
+        printf("\nSeleccione una opcion: ");
+        scanf("%d", &opcion);
+
+        switch (opcion) {
+            case 1:
+                jugar();
+                break;
+            case 2:
+                comoJugar();
+                break;
+            case 3:
+                printf("Saliendo del juego...\n");
+                break;
+            default:
+                printf("Opcion no valida. Intente nuevamente.\n");
+                break;
+        }
+
+        if (opcion != 3) {
+            printf("\nPresione cualquier tecla para continuar...\n");
+            getch();
+        }
+
+    } while (opcion != 3);
+
     return 0;
-};
+}
 
-int main(){
+void mostrarMenu() {
+    // Tamaño de la ventana de consola para 1920x1080
+    const int ventanaAncho = 120;  // 1920 / 16
+    const int ventanaAlto = 30;    // 1080 / 36
+
+    // Calcula las posiciones para centrar el texto en la ventana
+    int margenHorizontal = (ventanaAncho - 30) / 2; // 30 es la longitud máxima de las líneas del menú
+
+    // Limpiar pantalla
+    system("cls");
+
+    // Imprimir las opciones del menú centradas
+    printf("\n");
+    printf("%*sJUEGO\n", margenHorizontal + 10, "");
+    printf("%*sCOMO JUGAR\n", margenHorizontal + 9, "");
+    printf("%*sSALIR\n", margenHorizontal + 10, "");
+
+    // Línea separadora
+    for (int i = 0; i < ventanaAncho; ++i) {
+        printf("-");
+    }
+}
+
+void jugar() {
+    printf("Iniciando juego...\n");
     srand(time(0)); // semilla Aleatoria
     GameState gameState;
     gameState.playerCount = 2; // 2 jugadores por ahora
     initDeck(&gameState);
-    printDeck(&gameState);
     initHands(&gameState);
-    printhand(&gameState);
-    printDeck(&gameState);
     playGame(&gameState);
-    getchar();
-    getchar();
-    return 0;
-};
+
+}
+
+void comoJugar() {
+    printf("Instrucciones de juego:\n");
+    // Aquí van las instrucciones de cómo jugar
+}
