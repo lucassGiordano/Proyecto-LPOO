@@ -306,7 +306,9 @@ void imprimirArchivoEnemigo(GameState *gameState, const char *nombreArchivo, int
 }
 
 void obtenerNombreArchivo(Card card, char *nombreArchivo) {
-    if (card.symbol >= '0' && card.symbol <= '9') {
+    if (card.symbol == '\0' || card.symbol == ' ') {
+        sprintf(nombreArchivo, "cartanull.txt");
+    } else if (card.symbol >= '0' && card.symbol <= '9') {
         sprintf(nombreArchivo, "carta%c.txt", card.symbol);
     } else {
         sprintf(nombreArchivo, "carta%c.txt", card.symbol);
@@ -314,7 +316,7 @@ void obtenerNombreArchivo(Card card, char *nombreArchivo) {
 }
 
 void setColor(int textColor, int bgColor) {
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), textColor | bgColor);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), textColor | (bgColor << 4));
 }
 
 void imprimirArchivo(GameState* gameState) {
@@ -338,6 +340,24 @@ void imprimirArchivo(GameState* gameState) {
         finished = 1; // Asume que terminamos, a menos que veamos lo contrario
 
         for (int i = 0; i < CARTAS_EN_MANO; i++) {
+            // Establece el color de texto basado en el color de la carta
+            switch (gameState->players[0].hand[i].color) {
+                case 'R':
+                    setColor(12, 0); // Rojo claro sobre fondo negro
+                    break;
+                case 'G':
+                    setColor(10, 0); // Verde sobre fondo negro
+                    break;
+                case 'B':
+                    setColor(9, 0); // Azul claro sobre fondo negro
+                    break;
+                case 'Y':
+                    setColor(14, 0); // Amarillo sobre fondo negro
+                    break;
+                default:
+                    setColor(7, 0); // Blanco sobre fondo negro (por defecto)
+            }
+
             if (fgets(line, MAX_LINE_LENGTH, fps[i]) != NULL) {
                 // Si aún hay líneas por procesar
                 finished = 0;
@@ -358,18 +378,21 @@ void imprimirArchivo(GameState* gameState) {
         putchar('\n'); // Nueva línea después de procesar todas las cartas para esta línea
     }
 
+    // Restablece el color al valor predeterminado (blanco sobre fondo negro)
+    setColor(7, 0);
+
     // Cierra todos los archivos abiertos
     for (int i = 0; i < CARTAS_EN_MANO; i++) {
         fclose(fps[i]);
     }
 }
 
+
 void playGame(GameState* gameState) {
     printf("Bienvenido a Uno!\n");
     int currentPlayer = 0; // jugador actual
     while (1) {
 
-    imprimirArchivo(gameState);
         printf("Tu mano: ");
         for (int i = 0; i < 7; i++) {
             printf("%c%c|", gameState->players[currentPlayer].hand[i].color, gameState->players[currentPlayer].hand[i].symbol);
@@ -392,10 +415,13 @@ void playGame(GameState* gameState) {
         do {
             imprimirArchivoEnemigo(gameState,"carta.txt",1);
             printf("Tu turno! La carta descartada es: %c%c\n", drawnCard.color, drawnCard.symbol);
+
+            
+
             int cartaJugada = -1;
+            imprimirArchivo(gameState);
             printf("¿Qué carta deseas jugar? (0-6 para jugar, 7 para tomar una carta, 8 para ver el deck, 9 para ver descartadas): ");
             scanf("%d", &cartaJugada);
-
             if (cartaJugada >= 0 && cartaJugada < 7) {
                 Card playedCard = gameState->players[currentPlayer].hand[cartaJugada];
                 if (playedCard.color == drawnCard.color || playedCard.symbol == drawnCard.symbol || playedCard.color == 'W') {
