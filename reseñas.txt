@@ -1,0 +1,34 @@
+RESEÑA DEL JUEGO DE LUCAS, THIAGO, FABRI, MILANESA.
+
+El juego presenta una divertida experiencia 1v1 single player en el cual nos presenta un tablero
+no muy elaborado para jugar a un UNO modificado.
+						El juego esta bueno, en especial la parte gameplay.
+Sin embargo, la parte de MENU esta algo descuidada... Estaria bueno que mejoren eso, tambien en parte la 
+forma de ordenar el codigo (juego) en la terminal, esta medio desordenado. 
+						Por ultimo, estaria bueno que pueda ser del 1 al 7 y no del 0 al 7 
+(cuando tiras las cartas ash).
+
+Estuvo muy bueno el juego con las mecanicas de las cartas especiales y los cambios de colores.
+El cambio de cartas con el 7 esta bien implementado y es una buena forma de pasar el rato.
+
+NOTA: 6.2/10
+
+Reseña por Aron Barreiro :v
+
+NOTA: 7.5/10
+
+Reseña de Appaz: El juego es bueno, pero la falta de menu de instrucciones lo hace dificil de entender.
+
+Reseña de Ulises De Lio: La idea esta muy bien pero faltan pulir varias cosas importantes. 
+Sin embargo es totalmente entendible por el tiempo siendo asi que en unos dias,
+mas creo que el juego va a quedar bastante bien
+
+Nota: 8/10
+
+Reseña Kevin de Groote: El juego esta muy bueno, es intuitivo lastima que se bugea el mazo en emigo fuera de eso 7,9999999+/10.
+
+Reseña de Eduardo Orsi: El juego es bastante entretenido y amo el apartado grafico. Imita muy bien el 1 original y
+mantiene su esencia divertida. Sin embargo, lo malo es el menu y triste grafico, que la IA no te puede ganar (mentira) y que tenes que
+las opciones requeridas porque sino lo rompes. 
+
+Nota: 7.50/10
